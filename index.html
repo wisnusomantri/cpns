@@ -14,7 +14,7 @@
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
   }
 
-  /* Layar loading yang tampil sebelum iframe selesai dimuat */
+  /* Layar loading + tombol buka manual, tampil sampai iframe terbukti berhasil */
   #loading {
     position: fixed;
     inset: 0;
@@ -26,17 +26,37 @@
     color: #fff;
     z-index: 2;
     transition: opacity .35s ease;
+    padding: 24px;
+    text-align: center;
   }
   #loading .spinner {
-    width: 42px; height: 42px;
+    width: 40px; height: 40px;
     border: 4px solid rgba(255,255,255,.35);
     border-top-color: #fff;
     border-radius: 50%;
     animation: putar 0.8s linear infinite;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }
-  #loading p { font-size: 14px; opacity: .9; margin: 0; }
+  #loading p.status { font-size: 14px; opacity: .9; margin: 0 0 22px; }
   @keyframes putar { to { transform: rotate(360deg); } }
+
+  .btn-buka {
+    display: inline-block;
+    padding: 12px 26px;
+    background: #fff;
+    color: #0d47a1;
+    text-decoration: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .catatan-kecil {
+    margin-top: 14px;
+    font-size: 12px;
+    opacity: .75;
+    max-width: 320px;
+  }
 
   #appFrame {
     position: fixed;
@@ -46,41 +66,15 @@
     border: none;
     z-index: 1;
   }
-
-  #errorBox {
-    position: fixed;
-    inset: 0;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 24px;
-    background: #f4f6fb;
-    color: #1f2430;
-    z-index: 3;
-  }
-  #errorBox h2 { margin: 0 0 8px; font-size: 18px; }
-  #errorBox p { margin: 0; font-size: 14px; color: #5f6368; max-width: 380px; }
-  #errorBox a {
-    margin-top: 16px; display: inline-block; padding: 10px 20px;
-    background: #1a73e8; color: #fff; text-decoration: none;
-    border-radius: 10px; font-size: 14px; font-weight: 600;
-  }
 </style>
 </head>
 <body>
 
   <div id="loading">
     <div class="spinner"></div>
-    <p>Memuat Latihan Soal CPNS...</p>
-  </div>
-
-  <div id="errorBox">
-    <h2>⚠️ Sistem tidak bisa dimuat</h2>
-    <p>Kemungkinan link Web App Apps Script belum di-deploy ulang, akses "Anyone"
-       belum diaktifkan, atau ada masalah koneksi. Coba buka langsung lewat tombol di bawah.</p>
-    <a id="fallbackLink" href="#" target="_blank" rel="noopener">Buka di Tab Baru</a>
+    <p class="status" id="statusText">Memuat Latihan Soal CPNS...</p>
+    <a id="fallbackLink" class="btn-buka" href="#" target="_top">Buka Aplikasi</a>
+    <p class="catatan-kecil">Kalau tampilan tidak muncul otomatis dalam beberapa detik, ini biasa terjadi karena Google membatasi Web App-nya dibuka di dalam iframe — klik tombol di atas untuk membukanya langsung.</p>
   </div>
 
   <!--
@@ -88,6 +82,18 @@
     GANTI URL DI BAWAH INI dengan URL Web App hasil Deploy Apps Script Anda.
     Cara ambil URL: di editor Apps Script -> Deploy -> Manage deployments
     (atau New deployment) -> salin URL yang diakhiri "/exec".
+
+    PENTING soal iframe: Apps Script Web App kadang TIDAK BISA di-iframe
+    walau URL aslinya normal dibuka langsung. Penyebab paling umum:
+      1) Deploy diset "Who has access" selain "Anyone" -> Google me-redirect
+         ke halaman login accounts.google.com, dan halaman itu memblokir
+         dirinya sendiri dari iframe (X-Frame-Options: deny).
+      2) Browser memblokir cookie pihak ketiga (third-party cookies), yang
+         kadang dibutuhkan Apps Script untuk sesi meski akses "Anyone".
+    Kalau setelah cek Deploy > Manage deployments > "Who has access: Anyone"
+    iframe tetap gagal, itu keterbatasan dari sisi Google, bukan file ini.
+    Karena itu tombol "Buka Aplikasi" di atas selalu ditampilkan sebagai
+    jalur pasti berhasil, tidak menunggu iframe gagal dulu.
     ======================================================================
   -->
   <script>
@@ -95,29 +101,19 @@
 
     const frame = document.getElementById('appFrame');
     const loading = document.getElementById('loading');
-    const errorBox = document.getElementById('errorBox');
-    document.getElementById('fallbackLink').href = URL_WEB_APP;
-
-    let sudahDimuat = false;
-    const batasWaktu = setTimeout(() => {
-      if (!sudahDimuat) {
-        loading.style.display = 'none';
-        errorBox.style.display = 'flex';
-      }
-    }, 15000); // 15 detik timeout
+    const statusText = document.getElementById('statusText');
+    const fallbackLink = document.getElementById('fallbackLink');
+    fallbackLink.href = URL_WEB_APP;
 
     if (!URL_WEB_APP || URL_WEB_APP.indexOf('GANTI_DENGAN_URL') !== -1) {
-      clearTimeout(batasWaktu);
-      loading.style.display = 'none';
-      errorBox.style.display = 'flex';
-      document.querySelector('#errorBox h2').textContent = '⚙️ Belum dikonfigurasi';
-      document.querySelector('#errorBox p').textContent = 'Buka file index.html ini dan ganti URL_WEB_APP dengan URL deploy Apps Script Anda.';
-      document.getElementById('fallbackLink').style.display = 'none';
+      statusText.textContent = '⚙️ Belum dikonfigurasi';
+      document.querySelector('.catatan-kecil').textContent =
+        'Buka file index.html ini dan ganti URL_WEB_APP dengan URL deploy Apps Script Anda.';
+      fallbackLink.style.display = 'none';
     } else {
       frame.src = URL_WEB_APP;
       frame.onload = () => {
-        sudahDimuat = true;
-        clearTimeout(batasWaktu);
+        // Iframe berhasil dimuat -> sembunyikan layar loading & tombol manual
         loading.style.opacity = '0';
         setTimeout(() => loading.style.display = 'none', 350);
       };
