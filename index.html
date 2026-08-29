@@ -97,27 +97,32 @@
     ======================================================================
   -->
   <script>
-    const URL_WEB_APP = "https://script.google.com/a/macros/guru.smk.belajar.id/s/AKfycbyDD80L1XM26ZAo9KkJ1YK9uNTnlhk2Pclz11DCytpIucSeQaLd0NL1UGr0CzNnOKWcHQ/exec"; // contoh: https://script.google.com/macros/s/XXXXXXXXXXXXXXXX/exec
+    // Dibungkus window.addEventListener('load', ...) supaya SEMUA elemen HTML
+    // (termasuk <iframe> di bawah) sudah pasti terbentuk dulu sebelum diakses -
+    // ini yang tadi menyebabkan error "Cannot set properties of null".
+    window.addEventListener('load', function () {
+      const URL_WEB_APP = "https://script.google.com/a/macros/guru.smk.belajar.id/s/AKfycbyDD80L1XM26ZAo9KkJ1YK9uNTnlhk2Pclz11DCytpIucSeQaLd0NL1UGr0CzNnOKWcHQ/exec"; // contoh: https://script.google.com/macros/s/XXXXXXXXXXXXXXXX/exec
 
-    const frame = document.getElementById('appFrame');
-    const loading = document.getElementById('loading');
-    const statusText = document.getElementById('statusText');
-    const fallbackLink = document.getElementById('fallbackLink');
-    fallbackLink.href = URL_WEB_APP;
+      const frame = document.getElementById('appFrame');
+      const loading = document.getElementById('loading');
+      const statusText = document.getElementById('statusText');
+      const fallbackLink = document.getElementById('fallbackLink');
+      fallbackLink.href = URL_WEB_APP;
 
-    if (!URL_WEB_APP || URL_WEB_APP.indexOf('GANTI_DENGAN_URL') !== -1) {
-      statusText.textContent = '⚙️ Belum dikonfigurasi';
-      document.querySelector('.catatan-kecil').textContent =
-        'Buka file index.html ini dan ganti URL_WEB_APP dengan URL deploy Apps Script Anda.';
-      fallbackLink.style.display = 'none';
-    } else {
-      frame.src = URL_WEB_APP;
-      frame.onload = () => {
-        // Iframe berhasil dimuat -> sembunyikan layar loading & tombol manual
-        loading.style.opacity = '0';
-        setTimeout(() => loading.style.display = 'none', 350);
-      };
-    }
+      if (!URL_WEB_APP || URL_WEB_APP.indexOf('GANTI_DENGAN_URL') !== -1) {
+        statusText.textContent = '⚙️ Belum dikonfigurasi';
+        document.querySelector('.catatan-kecil').textContent =
+          'Buka file index.html ini dan ganti URL_WEB_APP dengan URL deploy Apps Script Anda.';
+        fallbackLink.style.display = 'none';
+      } else {
+        frame.src = URL_WEB_APP;
+        frame.onload = () => {
+          // Iframe berhasil dimuat -> sembunyikan layar loading & tombol manual
+          loading.style.opacity = '0';
+          setTimeout(() => loading.style.display = 'none', 350);
+        };
+      }
+    });
   </script>
 
   <iframe id="appFrame" title="Latihan Soal CPNS" allow="clipboard-write"></iframe>
